@@ -1,0 +1,22 @@
+[package]
+name = "duckjeu"
+version = "0.1.0"
+edition = "2021"
+description = "DuckJeu — JEV-powered judgment for DuckDB"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+lto = true
+strip = true
+opt-level = 3
+
+[dependencies]
+duckdb = { version = "~1.10505.0", default-features = false, features = [
+    "loadable-extension",
+] }
+serde_json = "1"
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
