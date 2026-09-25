@@ -1,0 +1,61 @@
+{
+  "status": "passed",
+  "timestamp": "2026-09-24T11:51:03+0800",
+  "environment": {
+    "os": "Darwin arm64",
+    "python": "3.11.6"
+  },
+  "provider": "typesafe",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "requested_model": "jev-latest",
+  "live_gate_enabled": true,
+  "credential_value_recorded": false,
+  "expected_external_http_attempts": 2,
+  "duckjeu_external_http_attempts": 2,
+  "checks": {
+    "four_unique_judgments": true,
+    "exactly_two_external_requests": true,
+    "both_requests_are_composite": true,
+    "reported_model_is_pinned": true,
+    "probability_rows_are_associated": true,
+    "boolean_rows_are_associated": true,
+    "choice_rows_are_associated": true,
+    "query_completed": true
+  },
+  "failures": [],
+  "results": {
+    "probabilities": [
+      0.02,
+      0.98
+    ],
+    "booleans": [
+      false,
+      true
+    ],
+    "choices": [
+      "bird",
+      "shark"
+    ]
+  },
+  "profile": {
+    "status": "completed",
+    "reported_models": [
+      "jev-1.13.0"
+    ],
+    "counts": {
+      "batch_size_histogram": {
+        "2": 2
+      },
+      "batched_requests": 2,
+      "cache_hit_judgments": 0,
+      "deduplicated_rows": 2,
+      "external_requests": 2,
+      "failed_requests": 0,
+      "input_rows": 6,
+      "null_rows": 0,
+      "provider_invocations": 2,
+      "unique_judgments": 4,
+      "valid_rows": 6
+    }
+  }
+}

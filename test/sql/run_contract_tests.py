@@ -313,6 +313,44 @@ def run_us3(results: Results, extension: pathlib.Path, stub: StubServer) -> None
         str(scenarios),
     )
 
+    # 执行配置在每次函数初始化时冻结，非法设置必须在外发前失败。
+    con.execute("SET duckjeu_execution_mode='row'")
+    con.execute("SET duckjeu_batch_enabled=false")
+    config_cases = [
+        ("SET duckjeu_batch_enabled=true", "SET duckjeu_batch_enabled=false", "row/batch 配置冲突报错"),
+        ("SET duckjeu_batch_max_judgments=0", "SET duckjeu_batch_max_judgments=16", "零 batch 大小报错"),
+        ("SET duckjeu_max_request_bytes=0", "SET duckjeu_max_request_bytes=262144", "零请求字节上限报错"),
+        ("SET duckjeu_max_inflight=0", "SET duckjeu_max_inflight=4", "零并发上限报错"),
+    ]
+    for set_invalid, restore, name in config_cases:
+        con.execute(restore)
+        con.execute(set_invalid)
+        stub.reset()
+        error = expect_error(con, "SELECT jev_prob('s','q')")
+        results.check(name, error is not None, str(error))
+        results.check(f"{name} 外发前失败", len(stub.requests) == 0, str(len(stub.requests)))
+        con.execute(restore)
+
+    # prepared statement 的第二次执行读取 SET 后的新执行配置。
+    con.execute("PREPARE runtime_settings AS SELECT jev_prob('s','q')")
+    stub.reset()
+    con.execute("EXECUTE runtime_settings")
+    first_execution_count = len(stub.requests)
+    con.execute("SET duckjeu_batch_enabled=true")
+    second_execution_error = expect_error(con, "EXECUTE runtime_settings")
+    results.check("prepared statement 重跑读取新执行配置", second_execution_error is not None)
+    results.check(
+        "prepared statement 配置错误不外发",
+        first_execution_count == 1 and len(stub.requests) == first_execution_count,
+        str(len(stub.requests)),
+    )
+
+    # 另一个 DuckDB 连接不继承当前连接的冲突设置。
+    stub.reset()
+    other.execute("SELECT jev_prob('s','q')")
+    results.check("执行配置连接隔离", len(stub.requests) == 1, str(len(stub.requests)))
+    con.execute("SET duckjeu_batch_enabled=false")
+
     # 凭据来自环境变量并进入 Authorization header
     stub.reset()
     configure(con, stub, "ok")

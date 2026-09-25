@@ -1,0 +1,12 @@
+.git/
+.venv/
+venv/
+target/
+build/
+configure/
+__pycache__/
+*.pyc
+*.log
+.env*
+*.tmp
+*.swp

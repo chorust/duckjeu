@@ -20,6 +20,7 @@
   wrong-type      noul → 字符串
   unauthorized    401，正文含伪造凭据串
   slow            延迟 2s（触发超时）
+  slow-short      延迟 1ms（并发上限合约）
   huge            返回超过 1MiB 的正文
   big-error       500，正文远超 300 字符（验证错误信息截断）
 """
@@ -27,6 +28,8 @@
 from __future__ import annotations
 
 import json
+import re
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -37,11 +40,61 @@ FAKE_SECRET = "sk-stub-should-never-leak-0123456789"
 def _answers_for(scenario: str, request: dict) -> tuple[int, dict]:
     model = request.get("model", "unknown")
     questions = request.get("questions") or {}
+    state = request.get("state") or {}
+    rows = state.get("rows") or [None]
+
+    if scenario == "echo-batch":
+        answers = {}
+        for question_key, question in questions.items():
+            kind = question.get("type", "noul")
+            match = re.search(
+                r"state\.rows\[(\d+)\]", question.get("instructions", "")
+            )
+            if match is None:
+                return 400, {"error": "question must identify one row"}
+            row_index = int(match.group(1))
+            if row_index >= len(rows):
+                return 400, {"error": "question row index is out of range"}
+            row = rows[row_index]
+            if kind == "choice":
+                candidates = list((question.get("criteria") or {}).keys())
+                value = row if row in candidates else "unknown"
+                answers[question_key] = {
+                    "type": "choice",
+                    "choice": value,
+                    "confidence": 1.0,
+                }
+            else:
+                try:
+                    value = float(row)
+                except (TypeError, ValueError):
+                    return 400, {"error": "noul echo row must be numeric text"}
+                answers[question_key] = {"type": "noul", "noul": value}
+        reversed_answers = dict(reversed(list(answers.items())))
+        return 200, {"model": model, "answers": reversed_answers}
+
+    if scenario == "ok" and len(questions) > 1:
+        answers = {}
+        for question_key, batch_question in questions.items():
+            batch_kind = batch_question.get("type", "noul")
+            if batch_kind == "choice":
+                candidates = list((batch_question.get("criteria") or {}).keys())
+                value = candidates[0] if candidates else "unknown"
+                answers[question_key] = {
+                    "type": "choice",
+                    "choice": value,
+                    "confidence": 1.0,
+                    "probabilities": {
+                        label: float(label == value) for label in candidates
+                    },
+                }
+            else:
+                answers[question_key] = {"type": "noul", "noul": 0.83}
+        return 200, {"model": model, "answers": dict(reversed(list(answers.items())))}
+
     key = next(iter(questions)) if questions else "r0"
     question = questions.get(key) or {}
     kind = question.get("type", "noul")
-    state = request.get("state") or {}
-    rows = state.get("rows") or [None]
     row = rows[0]
 
     def typed_answer(value):
@@ -100,6 +153,9 @@ def _answers_for(scenario: str, request: dict) -> tuple[int, dict]:
     if scenario == "slow":
         time.sleep(2.0)
         return answer(0.5)
+    if scenario == "slow-short":
+        time.sleep(0.001)
+        return answer(0.5)
     if scenario == "big-error":
         return 500, {"error": "y" * 5000}
     if scenario == "huge":
@@ -132,21 +188,47 @@ class _Handler(BaseHTTPRequestHandler):
             request = json.loads(raw.decode("utf-8") or "{}")
         except json.JSONDecodeError:
             request = {}
-        status, payload = _answers_for(scenario, request)
-        encoded = json.dumps(payload).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
+        with self.server.active_lock:  # type: ignore[attr-defined]
+            self.server.active_requests += 1  # type: ignore[attr-defined]
+            self.server.peak_active_requests = max(  # type: ignore[attr-defined]
+                self.server.peak_active_requests,  # type: ignore[attr-defined]
+                self.server.active_requests,  # type: ignore[attr-defined]
+            )
+        try:
+            status, payload = _answers_for(scenario, request)
+            encoded = json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            try:
+                self.wfile.write(encoded)
+            except (BrokenPipeError, ConnectionResetError):
+                # Expected when a timeout test closes the client socket before the stub replies.
+                pass
+        finally:
+            with self.server.active_lock:  # type: ignore[attr-defined]
+                self.server.active_requests -= 1  # type: ignore[attr-defined]
+
+
+class _QuietThreadingHTTPServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        error = sys.exc_info()[1]
+        if isinstance(error, (BrokenPipeError, ConnectionResetError)):
+            # Timeouts intentionally close sockets while a scripted response is pending.
+            return
+        super().handle_error(request, client_address)
 
 
 class StubServer:
     """在后台线程提供 stub HTTP 服务。"""
 
     def __init__(self, host: str = "127.0.0.1", port: int = 0):
-        self._server = ThreadingHTTPServer((host, port), _Handler)
+        self._server = _QuietThreadingHTTPServer((host, port), _Handler)
         self._server.requests = []  # type: ignore[attr-defined]
+        self._server.active_lock = threading.Lock()  # type: ignore[attr-defined]
+        self._server.active_requests = 0  # type: ignore[attr-defined]
+        self._server.peak_active_requests = 0  # type: ignore[attr-defined]
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
     def __enter__(self) -> "StubServer":
@@ -169,8 +251,21 @@ class StubServer:
     def requests(self) -> list[dict]:
         return self._server.requests  # type: ignore[attr-defined]
 
+    @property
+    def request_count(self) -> int:
+        """Actual HTTP attempts observed by the local server, including error responses."""
+        return len(self.requests)
+
+    @property
+    def peak_concurrent_requests(self) -> int:
+        """Highest number of requests being processed simultaneously since reset."""
+        with self._server.active_lock:  # type: ignore[attr-defined]
+            return self._server.peak_active_requests  # type: ignore[attr-defined]
+
     def reset(self) -> None:
         self.requests.clear()
+        with self._server.active_lock:  # type: ignore[attr-defined]
+            self._server.peak_active_requests = self._server.active_requests  # type: ignore[attr-defined]
 
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
-# DuckJeu — v0.1 技术规格
+# DuckJeu — v0.1 基础规格与 v0.2–v0.4 演进规格
 
-**状态（2026-09-23）**：v0.1 / Spec 001 已完成验收。`make demo`、`cargo test` 和 mock/stub 契约验收（53/53）通过；TypeSafe live acceptance 的 `jev_prob`、`jev_bool`、`jev_choice` 均以 3 行非敏感样例通过。完整结果见 [live acceptance evidence](build/acceptance/live-20260923T100542.json) 和 [roadmap.md](roadmap.md)。记录请求模型为 `jev-latest`；服务未提供可记录的实际模型名，预期请求数按逐行调用推导，未与计费记录核对。
+**历史状态（2026-09-23）**：v0.1 / Spec 001 已完成验收并复验评审修正。该次 `make demo`、workspace `cargo test`（65 tests）和基础 mock/stub SQL 契约（64/64）通过；TypeSafe live acceptance 的三函数均以 3 行非敏感样例通过。记录请求模型为 `jev-latest`；该次服务未提供可记录的实际模型名。
 
-本文件是仓库当前范围与技术约束的主规格。可验收需求见 [001-judgment-foundation/spec.md](specs/001-judgment-foundation/spec.md)，后续修改须同步；参考源码核查见 [reference-review.md](specs/001-judgment-foundation/reference-review.md)。
+**原验收记录（2026-09-25 本轮评审前）**：v0.2 批处理与缓存验收通过（DuckDB v1.5.5 / macOS arm64）。TypeSafe Noul/Choice 直接复合探针及 DuckJeu 扩展 SQL 端到端通过；effective model 为 `jev-1.13.0`，扩展对 4 个唯一判断发出 2 次 batch HTTP。`make check`、workspace Rust 69 项、基础 SQL 64/64、runtime SQL 33/33 和 profile SQL 14/14 均通过；workspace Clippy `-D warnings` 通过；1K/10K/100K stub batch 对照正确。profile SQL 专项回归确认 row 模式接受 50KB 输入、optimized 输入校验失败后 profile 更新为 failed 并计入尝试行。TypeSafe 与 local-jev 三函数 live SQL 均通过；v0.3 local-jev 资源记录为峰值 RSS 703.1 MiB、峰值 memory footprint 1.51 GiB、零 swap，实际加载权重 revision 未知且跨查询缓存关闭。v0.4 local-jev 真实 1K/10K/100K 对照通过；100K row/optimized/prefilter 分别发出 95,080/9,999/47,595 次 HTTP，local-jev 合批前置失败且零请求，未知权重 revision 下缓存零命中。费用未知；未测试 TypeSafe 多规模性能，详见 [roadmap](roadmap.md) 和 [Spec 002 evidence](specs/002-judgment-runtime-evolution/evidence/)。
+
+本文件是仓库当前范围与技术约束的主规格。v0.1 可验收需求见 [001-judgment-foundation/spec.md](specs/001-judgment-foundation/spec.md)；v0.2–v0.4 已确定的演进需求见 [002-judgment-runtime-evolution/spec.md](specs/002-judgment-runtime-evolution/spec.md)。v0.2–v0.4 的原验收记录已形成；v0.2 与 v0.4 新发现的问题待修复、复验；local-jev 实际加载权重 revision 未知，跨查询缓存关闭；v0.4 local-jev 合批明确 unsupported、真实服务计价未知。当前细节见 [roadmap.md](roadmap.md) 与 Spec 002 的 evidence 目录。后续修改须同步；参考源码核查见 [reference-review.md](specs/001-judgment-foundation/reference-review.md)。
 
 ## 1. 目标
 
@@ -157,3 +159,36 @@ plan 必须逐项说明这些约束落在哪些职责上，并验证 DuckDB Rust
 - 查询失败不撤销已经发生的外部请求与费用；错误信息保持脱敏。
 - 真实服务验收覆盖概率、布尔及类别三种形式，每种至少三行非敏感输入；保留实际 provider/model、结果类型、行数、请求数及耗时。服务不支持所需能力或缺少凭据时记录阻塞，不能标为完成。
 - 规划评审须覆盖第 9 节七类演进方向；实现验收须覆盖特性规格的全部验收场景。完成规格质量检查仅代表需求可进入规划，不代表实现或真实集成完成。
+
+## 11. v0.2–v0.4 已确定的演进规格
+
+本节同步 [Spec 002](specs/002-judgment-runtime-evolution/spec.md) 的跨版本决定。版本顺序为 v0.2 执行优化、v0.3 Provider 抽象、v0.4 Profiling；每版分别验收。以下列出已确定的行为和验收范围，沿用第 1–10 节所述 v0.1 基础契约。
+
+**原验收记录（2026-09-25 本轮评审前）**：v0.2、v0.3、v0.4 均曾通过所述验收；TypeSafe 多状态 batch 仅对实测 effective model `jev-1.13.0` 验证通过，DuckJeu 扩展 SQL 端到端将 4 个唯一判断压为 2 次 HTTP。US4 的无 DuckDB 依赖共享 Rust core 与 local-jev adapter 已实现；US5 的脱敏 profile、固定种子 1K/10K/100K 离线对照及 local-jev 真实服务对照已通过。review 修正后的 `make check`、workspace Rust 69 项、SQL contract 64/64、runtime contract 33/33、profile contract 14/14 和 TypeSafe 三函数 live acceptance 均通过（[live evidence](build/acceptance/live-20260924T144622.json)）；profile stub 确认 row 模式接受 50KB 输入、optimized 输入校验失败后 profile 更新并记录尝试行，以及 self-hosted 显式 `jev-latest` 原样进入请求及 profile。local-jev 三函数 live SQL 也通过（[local evidence](specs/002-judgment-runtime-evolution/evidence/local-live.json)）；资源数据已记录，实际加载权重 revision 未知并关闭跨查询缓存。真实 1K/10K/100K 对照中，100K row/optimized/prefilter 发出 95,080/9,999/47,595 次 HTTP；跨状态 batch 明确 unsupported 且在 HTTP 前失败，未知权重 revision 下缓存为零命中；没有远端 API 调用，local-jev 费用未知。TypeSafe 多规模性能未测。证据与边界见 [roadmap.md](roadmap.md)、[v0.2 acceptance](specs/002-judgment-runtime-evolution/evidence/v02-acceptance.md)、[v0.3 acceptance](specs/002-judgment-runtime-evolution/evidence/v03-acceptance.md)、[v0.4 acceptance](specs/002-judgment-runtime-evolution/evidence/v04-acceptance.md) 及 [Spec 002 evidence](specs/002-judgment-runtime-evolution/evidence/)。
+
+**当前实施状态（2026-09-25 评审后）**：v0.2 的执行期间取消传播和 v0.4 的费用计价来源有待修复项，原验收证据保留，完成状态待复验。逐行查询在慢速 provider 调用期间被中断时，当前实现要到 `QueryEnd` 才向请求等待者传播取消，可能继续发送该数据块的请求。`duckjeu_last_profile()` 当前仅凭 `typesafe` provider 名称及完整用量套用公开费率，未核查自定义端点和模型的计价来源，可能给出无依据的 USD 金额。修复后需分别验证中断停止后续请求，以及未核实价格时费用为未知；v0.3 的既有 provider 验收记录不受影响。
+
+### 11.1 v0.2 — 批处理与缓存
+
+- 提供可关闭的优化模式；关闭时保留逐行行为。启用后，同次执行的重复判断可共用已校验结果，并准确回填所有原始行位置。去重身份包含完整规范化状态和编码版本、问题类型及原文、候选及顺序、服务地址与模型上下文；哈希碰撞不得造成误合并。
+- 请求体字节上限只约束 `optimized` 模式生成的请求；`row` 模式保留原有输入大小行为。
+- 真实合批要求一次外部往返处理多个**不同**状态的判断并能逐项关联。目标服务不支持时明确报告，不以内部归组或并发逐行调用冒充。单批规模和同一连接内跨数据块/并行查询的并发量受可配置上限控制；失败、取消、乱序及部分响应沿用明确报错和脱敏规则。
+- 已核实 TypeSafe 协议只有一个顶层 state；把多行组成复合 state、再用多个 question key 关联的方式不是官方原生多状态接口，可能改变模型看到的上下文。该映射已用真实 Noul/Choice 探针和 DuckJeu SQL 端到端对 effective model `jev-1.13.0` 验收，且仅在用户显式启用后使用；模型响应漂移时失败关闭。其他模型仍未验证，详细限制见 [batch capability evidence](specs/002-judgment-runtime-evolution/evidence/batch-capability.md)。
+- 跨查询缓存默认关闭，仅显式启用时在单连接及凭据上下文中复用。条目数、内存占用和有效期有上限且可清空；失败结果不缓存。配置、服务、地址、模型、问题内容或编码版本变化时不能误命中；可变模型别名无法在下次请求前确认仍绑定同一实际版本时，不跨查询复用，即使上次响应曾报告版本。缓存不持久保存敏感状态。
+- 以固定 1K、10K、100K 行样例记录逐行基线与优化模式的正确性、耗时、实际外部请求数、唯一判断数与缓存命中率。去重、合批和缓存分别计数，不承诺查询结果行数等于请求数。
+
+### 11.2 v0.3 — Provider 抽象
+
+- 在既有远端 JEV 外，至少支持一个真实可访问、经协议和判断语义验证的本地或自托管 JEV 兼容服务；确定性 mock 不等于第二个真实服务。共享 Rust 判断核心可被其他宿主复用，不依赖 DuckDB 宿主或单一服务协议。
+- 当前规划的本地候选为固定源码版本的 local-jev，先用其较小的 NLI 模型验收，再视资源对照 Qwen 模型；源码兼容性证据不代替 DuckJeu 的真实调用结果。
+- 各服务明确声明并验证二元/类别判断、跨状态合批等能力；不支持的能力明确失败。继续保持三函数的 NULL、概率范围、布尔阈值、候选成员、失败及配置隔离契约。
+- `duckjeu_model` 未显式设置时使用 provider 默认模型；显式设置值始终作为请求模型保留，包括 selfhosted provider 上的 `jev-latest`。
+- 运行记录区分请求模型与服务实际模型，缺失实际标识时记为未知。不同服务或模型的分数不自动视为可比较或已校准；跨服务/模型不得共享缓存。
+
+### 11.3 v0.4 — Profiling
+
+- 记录输入/有效/唯一判断数、批量规模、实际外部请求、缓存命中、失败、序列化、客户端观测的外部往返及总耗时。仅在服务提供可信证据时展示服务端推理时间；无法拆分的网络与推理耗时标为未知，不能臆算。
+- 费用估计需注明单价、计费单位、实际用量、来源和估算时间；缺失依据时显示未知。估算不等于账单，失败请求可能产生费用。
+- 固定数据、问题、服务/模型、配置及环境，对逐行、预过滤、合批和缓存进行 1K、10K、100K 行对照；每种模式同时记录正确性、耗时、请求数、命中率及费用估计或未知原因，并区分真实服务与可控服务证据。预过滤效果以实测调用数为准。
+
+这三个里程碑继续受第 3、7、9 节约束：不把模型判断当作事实，不把失败变成默认结果，不提前纳入 PostgreSQL、集合 judgment、JDL 或持久化判断存储。详细场景、逐条需求和验收指标以 Spec 002 为准。

@@ -39,3 +39,12 @@ venv/
 
 # Specify
 .specify/*
+
+# Common local/editor artifacts
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+.codex/hooks.json

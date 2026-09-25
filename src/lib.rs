@@ -5,8 +5,11 @@
 
 #![allow(unsafe_op_in_unsafe_fn)]
 
+pub mod cache;
 pub mod config;
+pub mod executor;
 pub mod functions;
+pub mod host;
 pub mod judgment;
 pub mod provider;
 pub mod serialize;
@@ -83,6 +86,8 @@ pub unsafe extern "C" fn duckjeu_init_c_api(
     ok &= functions::prob::register(connection);
     ok &= functions::bool_fn::register(connection);
     ok &= functions::choice::register(connection);
+    ok &= functions::cache_clear::register(connection);
+    ok &= functions::profile::register(connection);
     if !ok {
         report_error(
             access,

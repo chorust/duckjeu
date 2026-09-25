@@ -31,7 +31,7 @@ OUT_RELEASE := build/release/$(EXTENSION_NAME).duckdb_extension
 
 METADATA := extension-ci-tools/scripts/append_extension_metadata.py
 
-.PHONY: all release debug demo test contract-test live-test check fmt clippy venv clean
+.PHONY: all release debug demo test contract-test runtime-contract batch-live batch-extension-live local-live local-bench profile-contract bench live-test check fmt clippy venv clean
 
 all: release
 
@@ -82,6 +82,34 @@ test:
 # SQL 契约与错误路径测试（本地 HTTP stub，无真实网络调用）
 contract-test: release venv
 	$(VENV_PYTHON) test/sql/run_contract_tests.py
+
+# Optimized execution, batch capability preflight, cache and connection contracts use local stubs.
+runtime-contract: release venv
+	$(VENV_PYTHON) test/sql/run_runtime_contract_tests.py
+
+# The script is blocked without DUCKJEU_BATCH_LIVE_TEST=1; only that explicit opt-in sends real requests.
+batch-live: release venv
+	$(VENV_PYTHON) test/sql/run_batch_live_acceptance.py
+
+# Makes only two live TypeSafe requests through DuckJeu; requires an explicit opt-in gate.
+batch-extension-live: release venv
+	$(VENV_PYTHON) test/sql/run_batch_extension_live_acceptance.py
+
+# Requires an independently running pinned local-jev server; no model is started by this target.
+local-live: release venv
+	$(VENV_PYTHON) test/sql/run_local_acceptance.py
+
+# Real local-jev multi-scale comparison; requires explicit opt-in and a running service.
+local-bench: release venv
+	$(VENV_PYTHON) test/bench/run_local_compare.py
+
+# Detailed query profiling is opt-in, but this contract suite uses only the local HTTP stub.
+profile-contract: release venv
+	$(VENV_PYTHON) test/sql/run_profile_contract_tests.py
+
+# Fixed-seed 1K/10K/100K comparisons use only the local scripted HTTP stub.
+bench: release venv
+	$(VENV_PYTHON) test/bench/run_compare.py
 
 check: fmt clippy test
 

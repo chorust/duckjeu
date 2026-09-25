@@ -4,18 +4,33 @@
 //! （见根规格 §9.1）。
 
 pub mod bool_fn;
+pub mod cache_clear;
 pub mod choice;
 pub mod prob;
+pub mod profile;
 
 use std::collections::BTreeMap;
 use std::ffi::{c_char, c_void, CStr, CString};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use duckdb::ffi::*;
 
+use crate::cache::CachePolicy;
 use crate::config;
-use crate::judgment::{bool_from_probability, JudgmentError, JudgmentRequest, JudgmentResult};
+use crate::executor::{
+    execute_batch_groups, execute_groups, group_by_identity, ExecutionLimits, JudgmentWork,
+    RowTarget,
+};
+use crate::judgment::{
+    bool_from_probability, JudgmentError, JudgmentIdentity, JudgmentIdentityContext,
+    JudgmentRequest, JudgmentResult,
+};
 use crate::provider::{provider_for, Provider, ProviderContext};
 use crate::serialize::{encode_struct, encode_text, CanonicalState, TypedValue};
+
+static NEXT_FUNCTION_INVOCATION: AtomicU64 = AtomicU64::new(1);
+static NEXT_DATA_CHUNK: AtomicU64 = AtomicU64::new(1);
 
 /// 三个 SQL 函数共享同一执行路径，仅输出映射不同。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +45,8 @@ pub struct ExecutionState {
     #[allow(dead_code)]
     pub context: ProviderContext,
     pub provider: Result<Box<dyn Provider>, String>,
+    pub connection: Option<crate::host::SharedConnectionRuntime>,
+    pub runtime_config: Result<config::RuntimeConfig, String>,
 }
 
 unsafe extern "C" fn drop_execution_state(ptr: *mut c_void) {
@@ -43,16 +60,41 @@ unsafe extern "C" fn drop_execution_state(ptr: *mut c_void) {
 /// # Safety
 /// 由 DuckDB 在函数执行初始化时调用，`info` 由宿主保证有效。
 pub unsafe extern "C" fn init(info: duckdb_init_info) {
+    let connection = crate::host::connection::runtime_for_scalar_init(info);
+    let runtime_config = config::read_runtime_config(info);
     let state = match config::read_provider_context(info) {
         Ok(context) => {
             let provider = provider_for(&context).map_err(|e| e.message().to_string());
-            ExecutionState { context, provider }
+            ExecutionState {
+                context,
+                provider,
+                connection,
+                runtime_config,
+            }
         }
         Err(message) => ExecutionState {
             context: ProviderContext::default(),
             provider: Err(message),
+            connection,
+            runtime_config,
         },
     };
+    if let Some(connection) = state.connection.as_ref() {
+        let detailed_timing = state
+            .runtime_config
+            .as_ref()
+            .is_ok_and(|runtime_config| runtime_config.profile_enabled);
+        let mut runtime = connection
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let query_scope = runtime.identity_scopes().1;
+        runtime.record_profile_context(
+            query_scope,
+            state.context.provider.as_str(),
+            &state.context.model,
+            detailed_timing,
+        );
+    }
     duckdb_scalar_function_init_set_state(
         info,
         Box::into_raw(Box::new(state)).cast(),
@@ -289,12 +331,11 @@ unsafe fn read_string_list(
     Ok(labels)
 }
 
-unsafe fn evaluate_row(
+unsafe fn read_request(
     kind: FunctionKind,
-    provider: &Result<Box<dyn Provider>, String>,
     input: duckdb_data_chunk,
     row: usize,
-) -> Result<Option<JudgmentResult>, JudgmentError> {
+) -> Result<Option<JudgmentRequest>, JudgmentError> {
     let state_vector = duckdb_data_chunk_get_vector(input, 0);
     let text_vector = duckdb_data_chunk_get_vector(input, 1);
     // 顶层 NULL 短路：结果为 NULL 且不调用 provider。
@@ -317,9 +358,7 @@ unsafe fn evaluate_row(
     let state = read_state(state_vector, row)?;
     let text = read_varchar(text_vector, row).unwrap_or_default();
     let request = match kind {
-        FunctionKind::Prob | FunctionKind::Bool => {
-            JudgmentRequest::noul(state, &text)?
-        }
+        FunctionKind::Prob | FunctionKind::Bool => JudgmentRequest::noul(state, &text)?,
         FunctionKind::Choice => {
             let choices_vector = choices_vector.ok_or_else(|| {
                 JudgmentError::invalid_input("internal error: choices vector is missing")
@@ -328,11 +367,214 @@ unsafe fn evaluate_row(
             JudgmentRequest::choice(state, &text, &choices)?
         }
     };
+    Ok(Some(request))
+}
+
+unsafe fn evaluate_row(
+    kind: FunctionKind,
+    provider: &Result<Box<dyn Provider>, String>,
+    runtime_config: &Result<config::RuntimeConfig, String>,
+    connection: Option<&crate::host::SharedConnectionRuntime>,
+    query_scope: Option<u64>,
+    input: duckdb_data_chunk,
+    row: usize,
+) -> Result<Option<JudgmentResult>, JudgmentError> {
+    let Some(request) = read_request(kind, input, row)? else {
+        return Ok(None);
+    };
     // Provider 初始化错误只对真正需要判断的行可见；NULL 行保持 NULL。
+    let runtime_config = runtime_config
+        .as_ref()
+        .map_err(|message| JudgmentError::configuration(message.clone()))?;
+    if runtime_config.mode != config::ExecutionMode::Row {
+        return Err(JudgmentError::configuration(
+            "internal error: optimized execution reached the row evaluator",
+        ));
+    }
     let provider = provider
         .as_ref()
         .map_err(|message| JudgmentError::configuration(message.clone()))?;
-    provider.judge(&request).map(Some)
+    let capabilities = provider.capabilities();
+    if capabilities.supports(request.kind) != crate::provider::CapabilityStatus::Verified {
+        return Err(JudgmentError::configuration(
+            "provider does not verify support for this judgment type",
+        ));
+    }
+    if capabilities.max_choices.is_some_and(|limit| {
+        request.kind == crate::judgment::QuestionKind::Choice && request.choices.len() > limit
+    }) {
+        return Err(JudgmentError::configuration(
+            "choice count exceeds the verified provider limit",
+        ));
+    }
+    let external = provider.makes_external_request();
+    let _permit = match (connection, query_scope) {
+        (Some(connection), Some(query_scope)) => Some(crate::host::acquire_request_permit(
+            connection,
+            query_scope,
+            runtime_config.max_inflight,
+        )?),
+        _ => None,
+    };
+    if let (Some(connection), Some(query_scope)) = (connection, query_scope) {
+        connection
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_provider_attempt(query_scope, 1, external);
+    }
+    let started = std::time::Instant::now();
+    let response = provider.judge_with_metadata(&request);
+    let elapsed = started.elapsed();
+    match response {
+        Ok(response) => {
+            if let (Some(connection), Some(query_scope)) = (connection, query_scope) {
+                connection
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .record_provider_response(query_scope, &response.metadata, elapsed, external);
+            }
+            crate::provider::validate_batch_result(std::slice::from_ref(&request), &response)?;
+            response
+                .answers
+                .into_iter()
+                .next()
+                .map(|answer| Some(answer.result))
+                .ok_or_else(|| JudgmentError::invalid_response("provider returned no answer"))
+        }
+        Err(error) => {
+            if external {
+                if let (Some(connection), Some(query_scope)) = (connection, query_scope) {
+                    let mut runtime = connection
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    runtime.record_failed_request(query_scope);
+                    runtime.record_provider_failure(query_scope, elapsed, external);
+                }
+            }
+            Err(error)
+        }
+    }
+}
+
+unsafe fn run_optimized(
+    kind: FunctionKind,
+    input: duckdb_data_chunk,
+    output: duckdb_vector,
+    state: &ExecutionState,
+    row_count: usize,
+) -> Result<(), JudgmentError> {
+    let runtime_config = state
+        .runtime_config
+        .as_ref()
+        .map_err(|message| JudgmentError::configuration(message.clone()))?;
+    if runtime_config.mode != config::ExecutionMode::Optimized {
+        return Err(JudgmentError::configuration(
+            "internal error: optimized execution has row configuration",
+        ));
+    }
+    let connection = state.connection.as_ref().ok_or_else(|| {
+        JudgmentError::configuration(
+            "optimized execution requires the DuckDB v1.5.5 connection bridge",
+        )
+    })?;
+
+    // Collect and validate every non-NULL row in the chunk before any request or output write.
+    let (query_scope, credential_scope) = {
+        let mut runtime = connection
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let query_scope = runtime.identity_scopes().1;
+        let credential_scope =
+            runtime.credential_scope(query_scope, state.context.credential.as_deref())?;
+        (query_scope, credential_scope)
+    };
+    // 在逐行解析前计入整个 chunk，保证输入校验失败也会刷新最近一次 profile。
+    connection
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .record_optimized_rows(query_scope, row_count, 0, 0, 0);
+    let cache_policy = runtime_config.cache_enabled.then(|| CachePolicy {
+        max_entries: runtime_config.cache_max_entries,
+        max_bytes: runtime_config.cache_max_bytes,
+        ttl: Duration::from_millis(runtime_config.cache_ttl_ms as u64),
+    });
+    let invocation = NEXT_FUNCTION_INVOCATION.fetch_add(1, Ordering::Relaxed);
+    let chunk = NEXT_DATA_CHUNK.fetch_add(1, Ordering::Relaxed);
+    let mut work = Vec::with_capacity(row_count);
+    let mut null_rows = 0usize;
+    for row in 0..row_count {
+        match read_request(kind, input, row)? {
+            Some(request) => {
+                let identity_context = JudgmentIdentityContext {
+                    provider_namespace: state.context.provider.as_str().to_string(),
+                    endpoint: state.context.api_url.clone(),
+                    requested_model: state.context.model.clone(),
+                    effective_model: None,
+                    credential_scope,
+                    model_binding_scope: query_scope,
+                };
+                work.push(JudgmentWork {
+                    identity: JudgmentIdentity::new(&request, identity_context),
+                    request,
+                    target: RowTarget {
+                        function_invocation: invocation,
+                        data_chunk: chunk,
+                        row,
+                    },
+                });
+            }
+            None => null_rows += 1,
+        }
+    }
+
+    let mut results_by_row: Vec<Option<JudgmentResult>> = vec![None; row_count];
+    let execution_limits = ExecutionLimits {
+        query_scope,
+        max_inflight: runtime_config.max_inflight,
+        max_request_bytes: runtime_config.max_request_bytes,
+    };
+    let valid_rows = work.len();
+    let groups = group_by_identity(work);
+    connection
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .record_optimized_rows(query_scope, 0, null_rows, valid_rows, groups.len());
+    if !groups.is_empty() {
+        let provider = state
+            .provider
+            .as_ref()
+            .map_err(|message| JudgmentError::configuration(message.clone()))?;
+        let executed = if runtime_config.batch_enabled {
+            execute_batch_groups(
+                &groups,
+                provider.as_ref(),
+                &crate::host::RuntimeAdapter(connection),
+                runtime_config.batch_max_judgments,
+                execution_limits,
+                cache_policy.as_ref(),
+            )?
+        } else {
+            execute_groups(
+                &groups,
+                provider.as_ref(),
+                &crate::host::RuntimeAdapter(connection),
+                execution_limits,
+                cache_policy.as_ref(),
+            )?
+        };
+        for (target, result) in executed {
+            results_by_row[target.row] = Some(result);
+        }
+    }
+
+    // Only after every response in this chunk has succeeded do we publish any value to DuckDB.
+    for (row, result) in results_by_row.iter().enumerate() {
+        match result {
+            Some(result) => write_result(kind, output, row, result),
+            None => set_output_null(output, row),
+        }
+    }
+    Ok(())
 }
 
 unsafe fn write_result(
@@ -379,10 +621,57 @@ pub unsafe fn run(
     }
     let state = &*(state_ptr as *const ExecutionState);
     let row_count = duckdb_data_chunk_get_size(input) as usize;
+    if state
+        .runtime_config
+        .as_ref()
+        .is_ok_and(|config| config.mode == config::ExecutionMode::Optimized)
+    {
+        if let Err(error) = run_optimized(kind, input, output, state, row_count) {
+            set_error(info, error.message());
+        }
+        return;
+    }
+    let query_scope = state.connection.as_ref().map(|connection| {
+        connection
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .identity_scopes()
+            .1
+    });
     for row in 0..row_count {
-        match evaluate_row(kind, &state.provider, input, row) {
-            Ok(None) => set_output_null(output, row),
-            Ok(Some(result)) => write_result(kind, output, row, &result),
+        if let (Some(connection), Some(query_scope)) = (&state.connection, query_scope) {
+            connection
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .record_row_input(query_scope);
+        }
+        match evaluate_row(
+            kind,
+            &state.provider,
+            &state.runtime_config,
+            state.connection.as_ref(),
+            query_scope,
+            input,
+            row,
+        ) {
+            Ok(None) => {
+                if let (Some(connection), Some(query_scope)) = (&state.connection, query_scope) {
+                    connection
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .record_row_result(query_scope, true);
+                }
+                set_output_null(output, row);
+            }
+            Ok(Some(result)) => {
+                if let (Some(connection), Some(query_scope)) = (&state.connection, query_scope) {
+                    connection
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .record_row_result(query_scope, false);
+                }
+                write_result(kind, output, row, &result);
+            }
             Err(error) => {
                 set_error(info, error.message());
                 return;

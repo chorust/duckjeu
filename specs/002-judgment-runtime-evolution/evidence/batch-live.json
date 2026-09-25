@@ -1,0 +1,102 @@
+{
+  "status": "passed",
+  "timestamp": "2026-09-24T11:24:49+0800",
+  "environment": {
+    "os": "Darwin arm64",
+    "python": "3.11.6"
+  },
+  "provider": "typesafe",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "requested_model": "jev-latest",
+  "live_gate_enabled": true,
+  "credential_value_recorded": false,
+  "external_http_attempts": 8,
+  "probes": {
+    "noul": {
+      "single": {
+        "0": {
+          "result": 0.01,
+          "model_reported": "jev-1.13.0",
+          "elapsed_seconds": 0.708
+        },
+        "1": {
+          "result": 0.98,
+          "model_reported": "jev-1.13.0",
+          "elapsed_seconds": 0.676
+        }
+      },
+      "composite": {
+        "results_by_key": {
+          "r0": 0.01,
+          "r1": 0.98
+        },
+        "response_key_order": [
+          "r1",
+          "r0"
+        ],
+        "model_reported": "jev-1.13.0",
+        "elapsed_seconds": 0.723
+      },
+      "with_unrelated_row": {
+        "results_by_key": {
+          "r1": 0.01,
+          "r2": 0.98
+        },
+        "response_key_order": [
+          "r2",
+          "r1"
+        ],
+        "model_reported": "jev-1.13.0",
+        "elapsed_seconds": 0.674
+      },
+      "row0_vs_row1_delta": 0.97,
+      "row_insertion_deltas": {
+        "row0": 0.0,
+        "row1": 0.0
+      }
+    },
+    "choice": {
+      "single": {
+        "0": {
+          "result": "bird",
+          "model_reported": "jev-1.13.0",
+          "elapsed_seconds": 0.651
+        },
+        "1": {
+          "result": "shark",
+          "model_reported": "jev-1.13.0",
+          "elapsed_seconds": 0.627
+        }
+      },
+      "composite": {
+        "results_by_key": {
+          "r0": "bird",
+          "r1": "shark"
+        },
+        "response_key_order": [
+          "r1",
+          "r0"
+        ],
+        "model_reported": "jev-1.13.0",
+        "elapsed_seconds": 0.706
+      },
+      "with_unrelated_row": {
+        "results_by_key": {
+          "r1": "bird",
+          "r2": "shark"
+        },
+        "response_key_order": [
+          "r2",
+          "r1"
+        ],
+        "model_reported": "jev-1.13.0",
+        "elapsed_seconds": 0.705
+      },
+      "expected_labels": [
+        "bird",
+        "shark"
+      ]
+    }
+  },
+  "failures": []
+}

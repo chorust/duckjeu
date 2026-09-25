@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "timestamp": "2026-09-24T16:21:35+0800",
+  "environment": {
+    "os": "Darwin arm64",
+    "python": "3.11.6"
+  },
+  "provider": "selfhosted",
+  "endpoint": "http://127.0.0.1:8765/v1/systemone",
+  "requested_model": "nli-deberta-large",
+  "local_jev_credential_configured": false,
+  "server_version": "0.2.0",
+  "server_default_model": "nli-deberta-large",
+  "credential_value_recorded": false,
+  "health_http_attempts": 1,
+  "duckjeu_external_http_attempts": 11,
+  "checks": {
+    "jev_prob": {
+      "rows": 3,
+      "results": [
+        0.3643,
+        0.3639,
+        0.3746
+      ],
+      "elapsed_seconds": 0.161,
+      "external_http_attempts": 3,
+      "model_reported": [
+        "nli-deberta-large"
+      ]
+    },
+    "jev_bool": {
+      "rows": 3,
+      "results": [
+        false,
+        false,
+        false
+      ],
+      "elapsed_seconds": 0.102,
+      "external_http_attempts": 3,
+      "model_reported": [
+        "nli-deberta-large"
+      ]
+    },
+    "jev_choice": {
+      "rows": 3,
+      "results": [
+        "account",
+        "shipping",
+        "account"
+      ],
+      "elapsed_seconds": 0.167,
+      "external_http_attempts": 3,
+      "model_reported": [
+        "nli-deberta-large"
+      ]
+    },
+    "choice_limit_preflight": {
+      "passed": true,
+      "external_http_attempts": 0
+    },
+    "unknown_weight_cache_isolation": {
+      "passed": true,
+      "first_query_http_attempts": 1,
+      "second_query_http_attempts": 1,
+      "cache_hits": 0
+    }
+  },
+  "failures": []
+}

@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "2026-09-24T03:50:11.360801+00:00",
+  "seed": 20260923,
+  "duckdb_python_version": "1.5.5",
+  "python_version": "3.11.6",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "extension": "build/release/duckjeu.duckdb_extension",
+  "service": "local scripted HTTP stub; no external service calls",
+  "settings": {
+    "requested_model": "jev-1.13.0",
+    "timeout_ms": 5000,
+    "max_inflight": 4,
+    "cache_max_entries": 20000,
+    "cache_max_bytes": 134217728,
+    "cache_ttl_ms": 3600000
+  },
+  "sql": {
+    "row_optimized_batch_cache": "SELECT id, jev_prob(state, criterion) FROM benchmark_rows ORDER BY id",
+    "prefilter": "SELECT id, jev_prob(state, criterion) FROM benchmark_rows WHERE id % 2 = 0 ORDER BY id"
+  },
+  "results": [
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 1000,
+        "state_pool_size": 100,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 23,
+        "null_criterion_rows": 22,
+        "valid_rows": 956,
+        "unique_judgments": 100,
+        "deduplicated_rows": 856,
+        "cross_chunk_duplicate_row_ids": [],
+        "sha256": "6720da4e0b9249767fb35d9dbcf6c9ab58095ec3b4f027ad17039987b48e74f6"
+      },
+      "provider": "typesafe",
+      "endpoint_kind": "local_scripted_stub",
+      "requested_model": "jev-1.13.0",
+      "modes": {
+        "row": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 956,
+          "elapsed_ms": 109.203
+        },
+        "optimized_dedup": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 100,
+          "elapsed_ms": 10.458
+        },
+        "prefilter": {
+          "status": "measured",
+          "correct": true,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 500,
+          "http_attempts": 471,
+          "elapsed_ms": 38.882
+        },
+        "batch": {
+          "status": "measured",
+          "capability": "verified_for_jev-1.13.0",
+          "correct": true,
+          "request_count_reduced": true,
+          "profile_matches_observed_requests": true,
+          "http_attempts": 8,
+          "batched_requests": 8,
+          "batch_size_histogram": {
+            "16": 4,
+            "9": 4
+          },
+          "profile_counts": {
+            "batch_size_histogram": {
+              "16": 4,
+              "9": 4
+            },
+            "batched_requests": 8,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 856,
+            "external_requests": 8,
+            "failed_requests": 0,
+            "input_rows": 1000,
+            "null_rows": 44,
+            "provider_invocations": 8,
+            "unique_judgments": 100,
+            "valid_rows": 956
+          },
+          "elapsed_ms": 2.575
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query_http_attempts": 100,
+          "second_query_http_attempts": 0,
+          "cache_hits_estimated_from_observed_requests": 100,
+          "cache_hit_rate": 1.0,
+          "first_query_elapsed_ms": 9.793,
+          "second_query_elapsed_ms": 0.868
+        }
+      },
+      "correctness": {
+        "optimized_equals_row": true,
+        "batch_equals_row": true,
+        "batch_requests_reduced": true,
+        "batch_profile_matches_observed_requests": true,
+        "prefilter_equals_row_subset": true,
+        "cache_equals_row": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local_stub_is_not_a_billable_service_and_has_no_price_data"
+    },
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 10000,
+        "state_pool_size": 1000,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 287,
+        "null_criterion_rows": 196,
+        "valid_rows": 9522,
+        "unique_judgments": 1001,
+        "deduplicated_rows": 8521,
+        "cross_chunk_duplicate_row_ids": [
+          4095,
+          4096
+        ],
+        "sha256": "9c877abab1cf04c7a924a99638857bbb8767acff856bfc6e74c54c6d08530016"
+      },
+      "provider": "typesafe",
+      "endpoint_kind": "local_scripted_stub",
+      "requested_model": "jev-1.13.0",
+      "modes": {
+        "row": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 9522,
+          "elapsed_ms": 917.843
+        },
+        "optimized_dedup": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 1001,
+          "elapsed_ms": 105.625
+        },
+        "prefilter": {
+          "status": "measured",
+          "correct": true,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 5000,
+          "http_attempts": 4755,
+          "elapsed_ms": 408.432
+        },
+        "batch": {
+          "status": "measured",
+          "capability": "verified_for_jev-1.13.0",
+          "correct": true,
+          "request_count_reduced": true,
+          "profile_matches_observed_requests": true,
+          "http_attempts": 71,
+          "batched_requests": 68,
+          "batch_size_histogram": {
+            "16": 58,
+            "5": 1,
+            "2": 2,
+            "8": 1,
+            "12": 1,
+            "14": 1,
+            "6": 1,
+            "7": 3
+          },
+          "profile_counts": {
+            "batch_size_histogram": {
+              "1": 3,
+              "12": 1,
+              "14": 1,
+              "16": 58,
+              "2": 2,
+              "5": 1,
+              "6": 1,
+              "7": 3,
+              "8": 1
+            },
+            "batched_requests": 68,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 8521,
+            "external_requests": 71,
+            "failed_requests": 0,
+            "input_rows": 10000,
+            "null_rows": 478,
+            "provider_invocations": 71,
+            "unique_judgments": 1001,
+            "valid_rows": 9522
+          },
+          "elapsed_ms": 24.054
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query_http_attempts": 1001,
+          "second_query_http_attempts": 0,
+          "cache_hits_estimated_from_observed_requests": 1001,
+          "cache_hit_rate": 1.0,
+          "first_query_elapsed_ms": 105.8,
+          "second_query_elapsed_ms": 10.677
+        }
+      },
+      "correctness": {
+        "optimized_equals_row": true,
+        "batch_equals_row": true,
+        "batch_requests_reduced": true,
+        "batch_profile_matches_observed_requests": true,
+        "prefilter_equals_row_subset": true,
+        "cache_equals_row": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local_stub_is_not_a_billable_service_and_has_no_price_data"
+    },
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 100000,
+        "state_pool_size": 10000,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 2981,
+        "null_criterion_rows": 2007,
+        "valid_rows": 95080,
+        "unique_judgments": 9999,
+        "deduplicated_rows": 85081,
+        "cross_chunk_duplicate_row_ids": [
+          49151,
+          49152
+        ],
+        "sha256": "dfa658808cd29cc0117f3ebde1c93efcb079038ee3249ab9fe1a4e76a8ea1ad2"
+      },
+      "provider": "typesafe",
+      "endpoint_kind": "local_scripted_stub",
+      "requested_model": "jev-1.13.0",
+      "modes": {
+        "row": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 95080,
+          "elapsed_ms": 10235.315
+        },
+        "optimized_dedup": {
+          "status": "measured",
+          "correct": true,
+          "http_attempts": 9999,
+          "elapsed_ms": 1044.961
+        },
+        "prefilter": {
+          "status": "measured",
+          "correct": true,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 50000,
+          "http_attempts": 47595,
+          "elapsed_ms": 4583.683
+        },
+        "batch": {
+          "status": "measured",
+          "capability": "verified_for_jev-1.13.0",
+          "correct": true,
+          "request_count_reduced": true,
+          "profile_matches_observed_requests": true,
+          "http_attempts": 710,
+          "batched_requests": 682,
+          "batch_size_histogram": {
+            "16": 570,
+            "8": 9,
+            "13": 6,
+            "5": 8,
+            "14": 6,
+            "10": 12,
+            "2": 12,
+            "12": 7,
+            "7": 8,
+            "3": 13,
+            "9": 6,
+            "15": 4,
+            "11": 6,
+            "4": 8,
+            "6": 7
+          },
+          "profile_counts": {
+            "batch_size_histogram": {
+              "1": 28,
+              "10": 12,
+              "11": 6,
+              "12": 7,
+              "13": 6,
+              "14": 6,
+              "15": 4,
+              "16": 570,
+              "2": 12,
+              "3": 13,
+              "4": 8,
+              "5": 8,
+              "6": 7,
+              "7": 8,
+              "8": 9,
+              "9": 6
+            },
+            "batched_requests": 682,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 85081,
+            "external_requests": 710,
+            "failed_requests": 0,
+            "input_rows": 100000,
+            "null_rows": 4920,
+            "provider_invocations": 710,
+            "unique_judgments": 9999,
+            "valid_rows": 95080
+          },
+          "elapsed_ms": 262.997
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query_http_attempts": 9999,
+          "second_query_http_attempts": 0,
+          "cache_hits_estimated_from_observed_requests": 9999,
+          "cache_hit_rate": 1.0,
+          "first_query_elapsed_ms": 1603.753,
+          "second_query_elapsed_ms": 440.276
+        }
+      },
+      "correctness": {
+        "optimized_equals_row": true,
+        "batch_equals_row": true,
+        "batch_requests_reduced": true,
+        "batch_profile_matches_observed_requests": true,
+        "prefilter_equals_row_subset": true,
+        "cache_equals_row": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local_stub_is_not_a_billable_service_and_has_no_price_data"
+    }
+  ]
+}

@@ -1,41 +1,43 @@
-//! Provider 层：只承担服务协议、认证接入、能力声明与响应转换。
-//!
-//! 不负责写回 DuckDB 向量（见根规格 §9.1）。
+//! Provider layer: service adapters and credential-aware construction.
 
+pub mod localjev;
 pub mod mock;
 pub mod typesafe;
 
-use crate::judgment::{JudgmentError, JudgmentRequest, JudgmentResult};
+pub use duckjeu_judgment_core::provider::{
+    validate_batch_result, CapabilityStatus, Provider, ProviderAnswer, ProviderBatchResult,
+    ProviderCapabilities, ProviderMetadata, ProviderUsage,
+};
 
-/// 支持的 provider 种类。
+use duckjeu_judgment_core::judgment::JudgmentError;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderKind {
-    /// 确定性离线 mock（默认）。
     Mock,
-    /// TypeSafe System One 真实服务（需显式开启）。
     Typesafe,
+    SelfHosted,
 }
 
 impl ProviderKind {
     pub fn parse(raw: &str) -> Result<Self, JudgmentError> {
         match raw.trim().to_ascii_lowercase().as_str() {
-            "mock" => Ok(ProviderKind::Mock),
-            "typesafe" => Ok(ProviderKind::Typesafe),
+            "mock" => Ok(Self::Mock),
+            "typesafe" => Ok(Self::Typesafe),
+            "selfhosted" => Ok(Self::SelfHosted),
             other => Err(JudgmentError::configuration(format!(
-                "unknown duckjeu_provider '{other}': expected 'mock' or 'typesafe'"
+                "unknown duckjeu_provider '{other}': expected 'mock', 'typesafe', or 'selfhosted'"
             ))),
         }
     }
-
     pub fn as_str(&self) -> &'static str {
         match self {
-            ProviderKind::Mock => "mock",
-            ProviderKind::Typesafe => "typesafe",
+            Self::Mock => "mock",
+            Self::Typesafe => "typesafe",
+            Self::SelfHosted => "selfhosted",
         }
     }
 }
 
-/// 连接级配置在一次执行中冻结后的快照。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProviderContext {
     pub provider: ProviderKind,
@@ -43,18 +45,19 @@ pub struct ProviderContext {
     pub model: String,
     pub timeout_ms: u64,
     pub max_response_bytes: u64,
-    /// 凭据只存在于内存上下文与 Authorization header。
     pub credential: Option<String>,
 }
 
 pub const DEFAULT_API_URL: &str = "https://api.typesafe.ai/v1/systemone";
 pub const DEFAULT_MODEL: &str = "jev-latest";
+pub const DEFAULT_LOCAL_JEV_API_URL: &str = "http://127.0.0.1:8765/v1/systemone";
+pub const DEFAULT_LOCAL_JEV_MODEL: &str = "nli-deberta-large";
 pub const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 pub const DEFAULT_MAX_RESPONSE_BYTES: u64 = 1_048_576;
 
 impl Default for ProviderContext {
     fn default() -> Self {
-        ProviderContext {
+        Self {
             provider: ProviderKind::Mock,
             api_url: DEFAULT_API_URL.to_string(),
             model: DEFAULT_MODEL.to_string(),
@@ -65,17 +68,14 @@ impl Default for ProviderContext {
     }
 }
 
-/// provider 契约：mock 与真实 adapter 经过同一验证路径。
-pub trait Provider: Send + Sync {
-    fn judge(&self, request: &JudgmentRequest) -> Result<JudgmentResult, JudgmentError>;
-}
-
-/// 按上下文选择 adapter。真实 provider 需要显式开启且必须有凭据。
 pub fn provider_for(ctx: &ProviderContext) -> Result<Box<dyn Provider>, JudgmentError> {
     match ctx.provider {
         ProviderKind::Mock => Ok(Box::new(mock::MockProvider)),
         ProviderKind::Typesafe => {
-            let credential = ctx.credential.as_deref().filter(|c| !c.trim().is_empty());
+            let credential = ctx
+                .credential
+                .as_deref()
+                .filter(|value| !value.trim().is_empty());
             match credential {
                 Some(credential) => Ok(Box::new(typesafe::TypesafeProvider::new(
                     ctx.api_url.clone(),
@@ -89,5 +89,12 @@ pub fn provider_for(ctx: &ProviderContext) -> Result<Box<dyn Provider>, Judgment
                 )),
             }
         }
+        ProviderKind::SelfHosted => Ok(Box::new(localjev::LocalJevProvider::new(
+            ctx.api_url.clone(),
+            ctx.model.clone(),
+            ctx.timeout_ms,
+            ctx.max_response_bytes,
+            ctx.credential.clone(),
+        ))),
     }
 }

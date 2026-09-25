@@ -1,0 +1,686 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "timestamp_utc": "2026-09-24T08:37:08.978809+00:00",
+  "seed": 20260923,
+  "duckdb_python_version": "1.5.5",
+  "python_version": "3.11.6",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "extension": "build/release/duckjeu.duckdb_extension",
+  "provider": "selfhosted",
+  "endpoint": "http://127.0.0.1:8765/v1/systemone",
+  "service_version": "0.2.0",
+  "service_default_model": "nli-deberta-large",
+  "requested_model": "nli-deberta-large",
+  "reported_weight_revision": "unknown; service reports model alias only",
+  "cross_query_cache_policy": "disabled because the loaded weight revision is unverified",
+  "live_gate_enabled": true,
+  "credential_configured": false,
+  "settings": {
+    "timeout_ms": 120000,
+    "max_inflight": 4
+  },
+  "results": [
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 1000,
+        "state_pool_size": 100,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 23,
+        "null_criterion_rows": 22,
+        "valid_rows": 956,
+        "unique_judgments": 100,
+        "deduplicated_rows": 856,
+        "cross_chunk_duplicate_row_ids": [],
+        "sha256": "6720da4e0b9249767fb35d9dbcf6c9ab58095ec3b4f027ad17039987b48e74f6"
+      },
+      "provider": "selfhosted",
+      "endpoint_kind": "real_local_jev_service",
+      "requested_model": "nli-deberta-large",
+      "modes": {
+        "row": {
+          "status": "completed",
+          "external_http_attempts": 956,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 956
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 956,
+            "failed_requests": 0,
+            "input_rows": 1000,
+            "null_rows": 44,
+            "provider_invocations": 956,
+            "unique_judgments": 956,
+            "valid_rows": 956
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 26697,
+            "missing_response_count": 0,
+            "output_tokens": 956
+          },
+          "elapsed_ms": 100649.146,
+          "query_wall_ms": 100648.882666,
+          "output_rows": 1000,
+          "nonnull_output_rows": 956,
+          "correct": true
+        },
+        "optimized_dedup": {
+          "status": "completed",
+          "external_http_attempts": 100,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 100
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 856,
+            "external_requests": 100,
+            "failed_requests": 0,
+            "input_rows": 1000,
+            "null_rows": 44,
+            "provider_invocations": 100,
+            "unique_judgments": 100,
+            "valid_rows": 956
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 2798,
+            "missing_response_count": 0,
+            "output_tokens": 100
+          },
+          "elapsed_ms": 10373.637,
+          "query_wall_ms": 10373.60925,
+          "correct": true
+        },
+        "prefilter": {
+          "status": "completed",
+          "external_http_attempts": 471,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 471
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 471,
+            "failed_requests": 0,
+            "input_rows": 500,
+            "null_rows": 29,
+            "provider_invocations": 471,
+            "unique_judgments": 471,
+            "valid_rows": 471
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 13206,
+            "missing_response_count": 0,
+            "output_tokens": 471
+          },
+          "elapsed_ms": 48848.75,
+          "query_wall_ms": 48848.715,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 500,
+          "correct": true
+        },
+        "batch": {
+          "status": "failed",
+          "external_http_attempts": 0,
+          "counts": {
+            "batch_size_histogram": {},
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 856,
+            "external_requests": 0,
+            "failed_requests": 0,
+            "input_rows": 1000,
+            "null_rows": 44,
+            "provider_invocations": 0,
+            "unique_judgments": 0,
+            "valid_rows": 956
+          },
+          "reported_models": [],
+          "usage": {
+            "input_tokens": null,
+            "missing_response_count": 0,
+            "output_tokens": null
+          },
+          "elapsed_ms": 0.766,
+          "query_wall_ms": 0.686625,
+          "capability": "unsupported",
+          "reason": "local-jev cross-state batch capability is not verified",
+          "error_type": "InvalidInputException",
+          "no_http_before_preflight": true
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query": {
+            "status": "completed",
+            "external_http_attempts": 100,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 100
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 856,
+              "external_requests": 100,
+              "failed_requests": 0,
+              "input_rows": 1000,
+              "null_rows": 44,
+              "provider_invocations": 100,
+              "unique_judgments": 100,
+              "valid_rows": 956
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 2798,
+              "missing_response_count": 0,
+              "output_tokens": 100
+            },
+            "elapsed_ms": 10332.075,
+            "query_wall_ms": 10332.044708
+          },
+          "second_query": {
+            "status": "completed",
+            "external_http_attempts": 100,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 100
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 856,
+              "external_requests": 100,
+              "failed_requests": 0,
+              "input_rows": 1000,
+              "null_rows": 44,
+              "provider_invocations": 100,
+              "unique_judgments": 100,
+              "valid_rows": 956
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 2798,
+              "missing_response_count": 0,
+              "output_tokens": 100
+            },
+            "elapsed_ms": 10379.173,
+            "query_wall_ms": 10379.129583
+          },
+          "cross_query_cache_hits": 0,
+          "unknown_weight_revision_disables_cache": true
+        }
+      },
+      "correctness": {
+        "row_completed_with_one_request_per_valid_row": true,
+        "optimized_equals_row": true,
+        "prefilter_equals_row_subset": true,
+        "batch_rejected_before_http": true,
+        "cache_results_equal_row": true,
+        "cache_disabled_for_unknown_weight_revision": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local service has no billing or pricing metadata"
+    },
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 10000,
+        "state_pool_size": 1000,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 287,
+        "null_criterion_rows": 196,
+        "valid_rows": 9522,
+        "unique_judgments": 1001,
+        "deduplicated_rows": 8521,
+        "cross_chunk_duplicate_row_ids": [
+          4095,
+          4096
+        ],
+        "sha256": "9c877abab1cf04c7a924a99638857bbb8767acff856bfc6e74c54c6d08530016"
+      },
+      "provider": "selfhosted",
+      "endpoint_kind": "real_local_jev_service",
+      "requested_model": "nli-deberta-large",
+      "modes": {
+        "row": {
+          "status": "completed",
+          "external_http_attempts": 9522,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 9522
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 9522,
+            "failed_requests": 0,
+            "input_rows": 10000,
+            "null_rows": 478,
+            "provider_invocations": 9522,
+            "unique_judgments": 9522,
+            "valid_rows": 9522
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 266562,
+            "missing_response_count": 0,
+            "output_tokens": 9522
+          },
+          "elapsed_ms": 1005970.475,
+          "query_wall_ms": 1005970.234583,
+          "output_rows": 10000,
+          "nonnull_output_rows": 9522,
+          "correct": true
+        },
+        "optimized_dedup": {
+          "status": "completed",
+          "external_http_attempts": 1001,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 1001
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 8521,
+            "external_requests": 1001,
+            "failed_requests": 0,
+            "input_rows": 10000,
+            "null_rows": 478,
+            "provider_invocations": 1001,
+            "unique_judgments": 1001,
+            "valid_rows": 9522
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 28027,
+            "missing_response_count": 0,
+            "output_tokens": 1001
+          },
+          "elapsed_ms": 108530.907,
+          "query_wall_ms": 108530.870875,
+          "correct": true
+        },
+        "prefilter": {
+          "status": "completed",
+          "external_http_attempts": 4755,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 4755
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 4755,
+            "failed_requests": 0,
+            "input_rows": 5000,
+            "null_rows": 245,
+            "provider_invocations": 4755,
+            "unique_judgments": 4755,
+            "valid_rows": 4755
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 133190,
+            "missing_response_count": 0,
+            "output_tokens": 4755
+          },
+          "elapsed_ms": 519136.734,
+          "query_wall_ms": 519136.671458,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 5000,
+          "correct": true
+        },
+        "batch": {
+          "status": "failed",
+          "external_http_attempts": 0,
+          "counts": {
+            "batch_size_histogram": {},
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 1101,
+            "external_requests": 0,
+            "failed_requests": 0,
+            "input_rows": 2048,
+            "null_rows": 99,
+            "provider_invocations": 0,
+            "unique_judgments": 0,
+            "valid_rows": 1949
+          },
+          "reported_models": [],
+          "usage": {
+            "input_tokens": null,
+            "missing_response_count": 0,
+            "output_tokens": null
+          },
+          "elapsed_ms": 1.681,
+          "query_wall_ms": 1.570084,
+          "capability": "unsupported",
+          "reason": "local-jev cross-state batch capability is not verified",
+          "error_type": "InvalidInputException",
+          "no_http_before_preflight": true
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query": {
+            "status": "completed",
+            "external_http_attempts": 1001,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 1001
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 8521,
+              "external_requests": 1001,
+              "failed_requests": 0,
+              "input_rows": 10000,
+              "null_rows": 478,
+              "provider_invocations": 1001,
+              "unique_judgments": 1001,
+              "valid_rows": 9522
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 28027,
+              "missing_response_count": 0,
+              "output_tokens": 1001
+            },
+            "elapsed_ms": 107569.272,
+            "query_wall_ms": 107569.244209
+          },
+          "second_query": {
+            "status": "completed",
+            "external_http_attempts": 1001,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 1001
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 8521,
+              "external_requests": 1001,
+              "failed_requests": 0,
+              "input_rows": 10000,
+              "null_rows": 478,
+              "provider_invocations": 1001,
+              "unique_judgments": 1001,
+              "valid_rows": 9522
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 28027,
+              "missing_response_count": 0,
+              "output_tokens": 1001
+            },
+            "elapsed_ms": 111888.08,
+            "query_wall_ms": 111888.039292
+          },
+          "cross_query_cache_hits": 0,
+          "unknown_weight_revision_disables_cache": true
+        }
+      },
+      "correctness": {
+        "row_completed_with_one_request_per_valid_row": true,
+        "optimized_equals_row": true,
+        "prefilter_equals_row_subset": true,
+        "batch_rejected_before_http": true,
+        "cache_results_equal_row": true,
+        "cache_disabled_for_unknown_weight_revision": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local service has no billing or pricing metadata"
+    },
+    {
+      "data": {
+        "seed": 20260923,
+        "rows": 100000,
+        "state_pool_size": 10000,
+        "planned_unique_state_fraction": 0.1,
+        "null_state_rows": 2981,
+        "null_criterion_rows": 2007,
+        "valid_rows": 95080,
+        "unique_judgments": 9999,
+        "deduplicated_rows": 85081,
+        "cross_chunk_duplicate_row_ids": [
+          49151,
+          49152
+        ],
+        "sha256": "dfa658808cd29cc0117f3ebde1c93efcb079038ee3249ab9fe1a4e76a8ea1ad2"
+      },
+      "provider": "selfhosted",
+      "endpoint_kind": "real_local_jev_service",
+      "requested_model": "nli-deberta-large",
+      "modes": {
+        "row": {
+          "status": "completed",
+          "external_http_attempts": 95080,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 95080
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 95080,
+            "failed_requests": 0,
+            "input_rows": 100000,
+            "null_rows": 4920,
+            "provider_invocations": 95080,
+            "unique_judgments": 95080,
+            "valid_rows": 95080
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 2661355,
+            "missing_response_count": 0,
+            "output_tokens": 95080
+          },
+          "elapsed_ms": 10073829.286,
+          "query_wall_ms": 10073824.535333,
+          "output_rows": 100000,
+          "nonnull_output_rows": 95080,
+          "correct": true
+        },
+        "optimized_dedup": {
+          "status": "completed",
+          "external_http_attempts": 9999,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 9999
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 85081,
+            "external_requests": 9999,
+            "failed_requests": 0,
+            "input_rows": 100000,
+            "null_rows": 4920,
+            "provider_invocations": 9999,
+            "unique_judgments": 9999,
+            "valid_rows": 95080
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 279977,
+            "missing_response_count": 0,
+            "output_tokens": 9999
+          },
+          "elapsed_ms": 1171452.312,
+          "query_wall_ms": 1171452.25925,
+          "correct": true
+        },
+        "prefilter": {
+          "status": "completed",
+          "external_http_attempts": 47595,
+          "counts": {
+            "batch_size_histogram": {
+              "1": 47595
+            },
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 0,
+            "external_requests": 47595,
+            "failed_requests": 0,
+            "input_rows": 50000,
+            "null_rows": 2405,
+            "provider_invocations": 47595,
+            "unique_judgments": 47595,
+            "valid_rows": 47595
+          },
+          "reported_models": [
+            "nli-deberta-large"
+          ],
+          "usage": {
+            "input_tokens": 1332220,
+            "missing_response_count": 0,
+            "output_tokens": 47595
+          },
+          "elapsed_ms": 5626499.702,
+          "query_wall_ms": 5626499.639334,
+          "predicate": "id % 2 = 0",
+          "valid_output_rows": 50000,
+          "correct": true
+        },
+        "batch": {
+          "status": "failed",
+          "external_http_attempts": 0,
+          "counts": {
+            "batch_size_histogram": {},
+            "batched_requests": 0,
+            "cache_hit_judgments": 0,
+            "deduplicated_rows": 169,
+            "external_requests": 0,
+            "failed_requests": 0,
+            "input_rows": 2048,
+            "null_rows": 111,
+            "provider_invocations": 0,
+            "unique_judgments": 0,
+            "valid_rows": 1937
+          },
+          "reported_models": [],
+          "usage": {
+            "input_tokens": null,
+            "missing_response_count": 0,
+            "output_tokens": null
+          },
+          "elapsed_ms": 6.859,
+          "query_wall_ms": 6.265916,
+          "capability": "unsupported",
+          "reason": "local-jev cross-state batch capability is not verified",
+          "error_type": "InvalidInputException",
+          "no_http_before_preflight": true
+        },
+        "cache": {
+          "status": "measured",
+          "correct": true,
+          "first_query": {
+            "status": "completed",
+            "external_http_attempts": 9999,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 9999
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 85081,
+              "external_requests": 9999,
+              "failed_requests": 0,
+              "input_rows": 100000,
+              "null_rows": 4920,
+              "provider_invocations": 9999,
+              "unique_judgments": 9999,
+              "valid_rows": 95080
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 279977,
+              "missing_response_count": 0,
+              "output_tokens": 9999
+            },
+            "elapsed_ms": 1048063.692,
+            "query_wall_ms": 1048063.657917
+          },
+          "second_query": {
+            "status": "completed",
+            "external_http_attempts": 9999,
+            "counts": {
+              "batch_size_histogram": {
+                "1": 9999
+              },
+              "batched_requests": 0,
+              "cache_hit_judgments": 0,
+              "deduplicated_rows": 85081,
+              "external_requests": 9999,
+              "failed_requests": 0,
+              "input_rows": 100000,
+              "null_rows": 4920,
+              "provider_invocations": 9999,
+              "unique_judgments": 9999,
+              "valid_rows": 95080
+            },
+            "reported_models": [
+              "nli-deberta-large"
+            ],
+            "usage": {
+              "input_tokens": 279977,
+              "missing_response_count": 0,
+              "output_tokens": 9999
+            },
+            "elapsed_ms": 1041931.691,
+            "query_wall_ms": 1041931.641084
+          },
+          "cross_query_cache_hits": 0,
+          "unknown_weight_revision_disables_cache": true
+        }
+      },
+      "correctness": {
+        "row_completed_with_one_request_per_valid_row": true,
+        "optimized_equals_row": true,
+        "prefilter_equals_row_subset": true,
+        "batch_rejected_before_http": true,
+        "cache_results_equal_row": true,
+        "cache_disabled_for_unknown_weight_revision": true
+      },
+      "cost_estimate": null,
+      "cost_unknown_reason": "local service has no billing or pricing metadata"
+    }
+  ],
+  "failures": [],
+  "resume_timestamps_utc": [
+    "2026-09-25T01:44:53.105718+00:00"
+  ]
+}

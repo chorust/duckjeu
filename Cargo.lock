@@ -499,9 +499,18 @@ dependencies = [
 name = "duckjeu"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "duckdb",
+ "duckjeu-judgment-core",
  "serde_json",
  "ureq",
+]
+
+[[package]]
+name = "duckjeu-judgment-core"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]

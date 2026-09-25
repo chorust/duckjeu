@@ -6,7 +6,12 @@ use crate::judgment::{
     validate_label, validate_probability, JudgmentError, JudgmentRequest, JudgmentResult,
     QuestionKind,
 };
-use crate::provider::Provider;
+use crate::provider::{
+    CapabilityStatus, Provider, ProviderAnswer, ProviderBatchResult, ProviderCapabilities,
+    ProviderMetadata,
+};
+
+pub const MOCK_EFFECTIVE_MODEL: &str = "duckjeu-deterministic-mock-v1";
 
 /// FNV-1a 64 位；仅用于确定性派生，不用于安全用途。
 fn fnv1a(bytes: &[u8], seed: u64) -> u64 {
@@ -21,7 +26,6 @@ fn fnv1a(bytes: &[u8], seed: u64) -> u64 {
 /// 由 canonical state 与问题内容确定性派生。
 pub fn derive_hash(request: &JudgmentRequest) -> u64 {
     let mut hash = fnv1a(request.state.canonical_bytes(), 0xcbf2_9ce4_8422_2325);
-    hash = fnv1a(request.request_key.as_bytes(), hash);
     match request.kind {
         QuestionKind::Noul => {
             hash = fnv1a(b"noul", hash);
@@ -47,6 +51,17 @@ pub fn derive_hash(request: &JudgmentRequest) -> u64 {
 pub struct MockProvider;
 
 impl Provider for MockProvider {
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            protocol_version: "duckjeu-mock/1".to_string(),
+            noul: CapabilityStatus::Verified,
+            choice: CapabilityStatus::Verified,
+            multi_state_batch: CapabilityStatus::Verified,
+            max_batch_judgments: None,
+            max_choices: None,
+        }
+    }
+
     fn judge(&self, request: &JudgmentRequest) -> Result<JudgmentResult, JudgmentError> {
         let hash = derive_hash(request);
         match request.kind {
@@ -64,5 +79,46 @@ impl Provider for MockProvider {
                 )?))
             }
         }
+    }
+
+    fn judge_with_metadata(
+        &self,
+        request: &JudgmentRequest,
+    ) -> Result<ProviderBatchResult, JudgmentError> {
+        Ok(ProviderBatchResult {
+            answers: vec![ProviderAnswer {
+                request_key: request.request_key.clone(),
+                result: self.judge(request)?,
+            }],
+            metadata: ProviderMetadata {
+                effective_model: Some(MOCK_EFFECTIVE_MODEL.to_string()),
+                ..ProviderMetadata::default()
+            },
+        })
+    }
+
+    fn cache_model_identity(&self, _requested_model: &str) -> Option<String> {
+        Some(MOCK_EFFECTIVE_MODEL.to_string())
+    }
+
+    fn judge_many(
+        &self,
+        requests: &[JudgmentRequest],
+    ) -> Result<ProviderBatchResult, JudgmentError> {
+        let mut response = ProviderBatchResult {
+            answers: Vec::with_capacity(requests.len()),
+            metadata: ProviderMetadata {
+                effective_model: Some(MOCK_EFFECTIVE_MODEL.to_string()),
+                ..ProviderMetadata::default()
+            },
+        };
+        for request in requests {
+            response.answers.push(ProviderAnswer {
+                request_key: request.request_key.clone(),
+                result: self.judge(request)?,
+            });
+        }
+        crate::provider::validate_batch_result(requests, &response)?;
+        Ok(response)
     }
 }
